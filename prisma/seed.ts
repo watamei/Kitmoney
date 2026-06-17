@@ -128,7 +128,7 @@ async function main() {
 
     for (let j = 0; j < salesCount; j++) {
       const itemsCount = randomInt(1, 4);
-      const saleItemsData = [];
+      const saleItemsData: { productId: number; quantity: number; priceAtSale: number; subtotal: number }[] = [];
       let saleTotal = 0;
 
       for (let k = 0; k < itemsCount; k++) {
@@ -170,7 +170,7 @@ async function main() {
     // --- Generate Periodic Restocks ---
     if (i > 0 && i % 15 === 0) {
       let restockTotal = 0;
-      const restockItemsData = [];
+      const restockItemsData: { productId: number; quantity: number; unitCost: number; subtotal: number }[] = [];
 
       const restockProductsCount = randomInt(3, 5);
       for (let r = 0; r < restockProductsCount; r++) {
