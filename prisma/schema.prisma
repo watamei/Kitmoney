@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+}
+
+model Product {
+  id          Int        @id @default(autoincrement())
+  barcode     String?    @unique
+  name        String
+  categoryId  Int?
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  cost        Float      @default(0)
+  price       Float      @default(0)
+  stock       Int        @default(0)
+  isPinned    Boolean    @default(false)
+  minStock    Int        @default(10)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  SaleItem    SaleItem[]
+  RestockItem RestockItem[]
+}
+
+model Sale {
+  id            Int        @id @default(autoincrement())
+  totalAmount   Float
+  paymentMethod String     @default("CASH") // CASH, TRANSFER, etc.
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int
+  productId   Int?
+  quantity    Int
+  priceAtSale Float
+  subtotal    Float
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  description String
+  amount      Float
+  expenseDate DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Restock {
+  id          Int           @id @default(autoincrement())
+  totalCost   Float
+  supplier    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  items       RestockItem[]
+}
+
+model RestockItem {
+  id          Int      @id @default(autoincrement())
+  restockId   Int
+  productId   Int?
+  quantity    Int
+  unitCost    Float
+  subtotal    Float
+  restock     Restock  @relation(fields: [restockId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}

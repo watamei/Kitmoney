@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || 'daily';
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    let startDate = new Date();
+    let endDate = new Date();
+
+    if (period === 'custom' && startDateParam && endDateParam) {
+      startDate = new Date(startDateParam);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(endDateParam);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === 'monthly') {
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setMonth(endDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === 'yearly') {
+      startDate.setMonth(0, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setMonth(11, 31);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === 'last7days') {
+      startDate.setDate(startDate.getDate() - 6);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === 'last30days') {
+      startDate.setDate(startDate.getDate() - 29);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    const sales = await prisma.sale.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(sales);
+  } catch (error) {
+    console.error('Failed to fetch sales history:', error);
+    return NextResponse.json({ error: 'Failed to fetch sales history' }, { status: 500 });
+  }
+}
