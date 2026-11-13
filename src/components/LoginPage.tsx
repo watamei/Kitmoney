@@ -5,6 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/components/AuthProvider';
 import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
+// Deterministic floating particles to avoid SSR hydration mismatch
+const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
+  id: i,
+  x: (i * 37 + 13) % 100,
+  y: (i * 73 + 41) % 100,
+  size: ((i * 19 + 7) % 40) / 10 + 2,
+  duration: ((i * 23 + 11) % 15) + 10,
+  delay: ((i * 31 + 17) % 50) / 10,
+}));
+
 export default function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
@@ -54,16 +64,6 @@ export default function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => vo
       setIsLoggingIn(false);
     }
   };
-
-  // Floating particles
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 4 + 2,
-    duration: Math.random() * 15 + 10,
-    delay: Math.random() * 5,
-  }));
 
   return (
     <div style={{
@@ -133,7 +133,7 @@ export default function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => vo
         />
 
         {/* Floating particles */}
-        {particles.map(p => (
+        {PARTICLES.map(p => (
           <motion.div
             key={p.id}
             animate={{
