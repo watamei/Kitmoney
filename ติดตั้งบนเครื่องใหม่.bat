@@ -26,22 +26,21 @@ if %errorlevel% neq 0 (
 echo [OK] ตรวจพบ Node.js ในเครื่องเรียบร้อยแล้ว
 echo.
 
-:: 2. ตรวจสอบและสร้าง .env อัตโนมัติ (เผื่อก๊อปปี้มาแล้วไฟล์ .env ไม่ติดมาด้วย)
+:: 2. ตรวจสอบและสร้าง .env อัตโนมัติ (ระบบ Offline ในเครื่อง ไม่ต้องใช้เน็ต)
 if not exist ".env" (
-    echo [กำลังสร้างไฟล์ .env เชื่อมต่อ Neon Cloud อัตโนมัติ...]
+    echo [กำลังสร้างไฟล์ .env สำหรับระบบ Offline อัตโนมัติ...]
     (
-        echo DATABASE_URL="postgresql://neondb_owner:npg_HjufMAV4vP8Y@ep-summer-sunset-azalpwo7-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-        echo DIRECT_URL="postgresql://neondb_owner:npg_HjufMAV4vP8Y@ep-summer-sunset-azalpwo7.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+        echo DATABASE_URL="file:./dev.db"
         echo SESSION_SECRET="kitmoney_super_secure_session_secret_key_32chars_min"
     ) > .env
-    echo [OK] เชื่อมต่อ Cloud Database Neon สำเร็จ
+    echo [OK] ตั้งค่าระบบ Offline 100%% สำเร็จ
 )
 
 echo [1/3] กำลังติดตั้งไลบรารีของระบบ (npm install)...
 call npm install
 
 echo.
-echo [2/3] กำลังเชื่อมต่อโครงสร้างข้อมูล Cloud Neon (prisma generate)...
+echo [2/3] กำลังเตรียมฐานข้อมูล SQLite ในเครื่อง (prisma generate)...
 call npx prisma generate
 
 echo.

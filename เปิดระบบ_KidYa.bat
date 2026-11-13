@@ -4,7 +4,7 @@ title KidYa - Pharmacy POS System
 
 echo ========================================================
 echo        กำลังเริ่มระบบ KidYa - Luxury Pharmacy POS
-echo        เชื่อมต่อ Cloud Database: Neon PostgreSQL
+echo        ระบบออฟไลน์ 100% (ไม่ต้องต่อเน็ต เน็ตหลุดก็ขายได้)
 echo ========================================================
 echo.
 
