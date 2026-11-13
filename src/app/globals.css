@@ -6,6 +6,7 @@
   --sidebar-border: rgba(0, 0, 0, 0.05);
   --card-bg: rgba(255, 255, 255, 0.85);
   --card-border: rgba(255, 255, 255, 0.5);
+  --modal-bg: #ffffff;
   
   --primary-color: #0071e3;
   --primary-hover: #0077ED;
@@ -39,6 +40,7 @@
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --card-bg: rgba(28, 28, 30, 0.8);
   --card-border: rgba(255, 255, 255, 0.08);
+  --modal-bg: #1c1c1e;
   
   --primary-color: #2997ff;
   --primary-hover: #4facfe;
@@ -465,27 +467,28 @@ h3 { font-size: 1.25rem; font-weight: 500; }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  animation: fadeIn 0.3s ease-out forwards;
+  z-index: 1000;
+  animation: fadeIn 0.25s ease-out forwards;
 }
 
 .modal {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  padding: 2.5rem;
+  background: var(--modal-bg);
+  border: 1px solid var(--border-color);
+  padding: 2.25rem;
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-color);
+  max-width: 440px;
   width: 95%;
   max-height: 90vh;
   overflow-y: auto;
   text-align: left;
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Tables */

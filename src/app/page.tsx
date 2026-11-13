@@ -782,11 +782,21 @@ export default function POSPage() {
 
       {/* Payment Modal */}
       {paymentMethod && cart.length > 0 && !showPrintModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '1rem' : 0 }}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card" style={{ width: '100%', maxWidth: '420px', padding: isMobile ? '1.25rem' : '1.75rem' }}>
+        <div className="modal-backdrop">
+          <motion.div 
+            initial={{ scale: 0.92, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            className="modal" 
+            style={{ 
+              maxWidth: '430px', 
+              padding: isMobile ? '1.25rem' : '1.75rem',
+              background: 'var(--modal-bg)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+            }}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{t('payment')}</h2>
-              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-color)' }}>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>{t('payment')}</h2>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)' }}>
                 ฿{totalAmount.toFixed(2)}
               </span>
             </div>
@@ -799,7 +809,7 @@ export default function POSPage() {
                   setAmountReceived(totalAmount.toFixed(2));
                 }}
                 className={`btn ${paymentMethod === 'CASH' ? 'btn-primary' : ''}`}
-                style={{ flex: 1, padding: '0.65rem', border: paymentMethod !== 'CASH' ? '1px solid var(--border-color)' : 'none', fontWeight: 600 }}
+                style={{ flex: 1, padding: '0.7rem', border: paymentMethod !== 'CASH' ? '1px solid var(--border-color)' : 'none', fontWeight: 600, fontSize: '0.95rem' }}
               >
                 💵 {t('cash')}
               </button>
@@ -807,7 +817,7 @@ export default function POSPage() {
                 type="button"
                 onClick={() => setPaymentMethod('TRANSFER')}
                 className={`btn ${paymentMethod === 'TRANSFER' ? 'btn-primary' : ''}`}
-                style={{ flex: 1, padding: '0.65rem', border: paymentMethod !== 'TRANSFER' ? '1px solid var(--border-color)' : 'none', fontWeight: 600 }}
+                style={{ flex: 1, padding: '0.7rem', border: paymentMethod !== 'TRANSFER' ? '1px solid var(--border-color)' : 'none', fontWeight: 600, fontSize: '0.95rem' }}
               >
                 📱 {t('transfer')}
               </button>
@@ -816,7 +826,7 @@ export default function POSPage() {
             <form onSubmit={(e) => { e.preventDefault(); handleCheckout(); }}>
               {paymentMethod === 'CASH' ? (
                 <div className="mb-5">
-                  <label style={{ display: 'block', marginBottom: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
+                  <label style={{ display: 'block', marginBottom: '0.45rem', color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600 }}>
                     {t('amount_received')} (฿)
                   </label>
                   <input 
@@ -825,7 +835,16 @@ export default function POSPage() {
                     value={amountReceived}
                     onChange={e => setAmountReceived(e.target.value)}
                     placeholder="0.00"
-                    style={{ width: '100%', fontSize: '1.35rem', fontWeight: 700, padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)' }}
+                    style={{ 
+                      width: '100%', 
+                      fontSize: '1.4rem', 
+                      fontWeight: 700, 
+                      padding: '0.75rem 1rem', 
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: '1.5px solid var(--border-color)',
+                    }}
                     autoFocus
                   />
 
@@ -835,7 +854,15 @@ export default function POSPage() {
                       type="button"
                       onClick={() => setAmountReceived(totalAmount.toFixed(2))}
                       className="btn"
-                      style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', border: '1px solid var(--primary-color)', color: 'var(--primary-color)', background: 'var(--bg-secondary)', fontWeight: 600 }}
+                      style={{ 
+                        fontSize: '0.85rem', 
+                        padding: '0.4rem 0.75rem', 
+                        border: '1.5px solid var(--primary-color)', 
+                        color: 'var(--primary-color)', 
+                        background: 'var(--primary-light)', 
+                        fontWeight: 700,
+                        borderRadius: 'var(--radius-full)'
+                      }}
                     >
                       {t('exact_amount')} (฿{totalAmount.toFixed(0)})
                     </button>
@@ -845,7 +872,15 @@ export default function POSPage() {
                         type="button"
                         onClick={() => setAmountReceived(val.toString())}
                         className="btn"
-                        style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}
+                        style={{ 
+                          fontSize: '0.85rem', 
+                          padding: '0.4rem 0.75rem', 
+                          border: '1px solid var(--border-color)', 
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          borderRadius: 'var(--radius-full)',
+                          fontWeight: 600
+                        }}
                       >
                         ฿{val.toLocaleString()}
                       </button>
@@ -853,9 +888,18 @@ export default function POSPage() {
                   </div>
 
                   {amountReceived && parseFloat(amountReceived) >= totalAmount ? (
-                    <div style={{ marginTop: '0.85rem', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--success-color)', fontWeight: 600, fontSize: '0.95rem' }}>{t('change')}</span>
-                      <span style={{ color: 'var(--success-color)', fontWeight: 800, fontSize: '1.2rem' }}>฿{changeAmount.toFixed(2)}</span>
+                    <div style={{ 
+                      marginTop: '1rem', 
+                      padding: '0.85rem 1rem', 
+                      borderRadius: 'var(--radius-md)', 
+                      background: 'rgba(48, 209, 88, 0.12)', 
+                      border: '1px solid rgba(48, 209, 88, 0.35)', 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center' 
+                    }}>
+                      <span style={{ color: 'var(--success-color)', fontWeight: 600, fontSize: '1rem' }}>{t('change')}</span>
+                      <span style={{ color: 'var(--success-color)', fontWeight: 800, fontSize: '1.35rem' }}>฿{changeAmount.toFixed(2)}</span>
                     </div>
                   ) : amountReceived && parseFloat(amountReceived) < totalAmount ? (
                     <p style={{ marginTop: '0.5rem', color: 'var(--danger-color)', fontSize: '0.85rem' }}>
@@ -864,20 +908,27 @@ export default function POSPage() {
                   ) : null}
                 </div>
               ) : (
-                <div className="mb-5" style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📲</div>
-                  <p style={{ fontSize: '0.95rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>{t('transfer_prompt')}</p>
-                  <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)', margin: 0 }}>฿{totalAmount.toFixed(2)}</p>
+                <div className="mb-5" style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📲</div>
+                  <p style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>{t('transfer_prompt')}</p>
+                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary-color)', margin: 0 }}>฿{totalAmount.toFixed(2)}</p>
                 </div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-5">
                 <button 
                   type="button"
                   onClick={() => setPaymentMethod('')} 
                   disabled={isCheckingOut}
                   className="btn" 
-                  style={{ flex: 1, border: '1px solid var(--border-color)' }}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.75rem',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600
+                  }}
                 >
                   {t('cancel')}
                 </button>
@@ -885,7 +936,12 @@ export default function POSPage() {
                   type="submit"
                   disabled={isCheckingOut || (paymentMethod === 'CASH' && (!amountReceived || parseFloat(amountReceived) < totalAmount))}
                   className="btn btn-success" 
-                  style={{ flex: 2, padding: '0.75rem', fontSize: '1.05rem', fontWeight: 700 }}
+                  style={{ 
+                    flex: 2, 
+                    padding: '0.75rem', 
+                    fontSize: '1.05rem', 
+                    fontWeight: 700 
+                  }}
                 >
                   {isCheckingOut ? t('processing_payment') : t('confirm_payment')}
                 </button>
