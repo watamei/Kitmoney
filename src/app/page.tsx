@@ -34,6 +34,7 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
@@ -218,12 +219,13 @@ export default function POSPage() {
   const changeAmount = paymentMethod === 'CASH' && amountReceived ? parseFloat(amountReceived) - totalAmount : 0;
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isCheckingOut) return;
     if (paymentMethod === 'CASH' && (!amountReceived || parseFloat(amountReceived) < totalAmount)) {
       alert(t('amount_less_than_total'));
       return;
     }
 
+    setIsCheckingOut(true);
     try {
       const res = await fetch('/api/sales', {
         method: 'POST',
@@ -231,12 +233,13 @@ export default function POSPage() {
         body: JSON.stringify({
           items: cart,
           totalAmount,
-          paymentMethod
+          paymentMethod: paymentMethod || 'CASH'
         })
       });
 
       if (res.ok) {
         setShowPrintModal(true);
+        setPaymentMethod('');
         fetchProducts();
       } else {
         const errorData = await res.json().catch(() => null);
@@ -246,6 +249,8 @@ export default function POSPage() {
     } catch (error) {
       console.error('Checkout error:', error);
       alert(t('checkout_error'));
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -255,6 +260,7 @@ export default function POSPage() {
     }
     setCart([]);
     setAmountReceived('');
+    setPaymentMethod('');
     setShowPrintModal(false);
   };
 
@@ -336,6 +342,7 @@ export default function POSPage() {
             onClick={() => {
               if (isMobileCartOpen) setIsMobileCartOpen(false);
               setPaymentMethod('CASH');
+              setAmountReceived(totalAmount.toFixed(2));
             }}
             className="btn btn-primary" 
             style={{ width: '100%', padding: '0.9rem', fontSize: '1.05rem', fontWeight: 600 }}
@@ -666,62 +673,114 @@ export default function POSPage() {
       {/* Payment Modal */}
       {paymentMethod && cart.length > 0 && !showPrintModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '1rem' : 0 }}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card" style={{ width: '100%', maxWidth: '400px', padding: isMobile ? '1rem' : undefined }}>
-            <h2 className="mb-6">{t('payment')}</h2>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card" style={{ width: '100%', maxWidth: '420px', padding: isMobile ? '1.25rem' : '1.75rem' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{t('payment')}</h2>
+              <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-color)' }}>
+                ฿{totalAmount.toFixed(2)}
+              </span>
+            </div>
             
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-3 mb-5">
               <button 
-                onClick={() => setPaymentMethod('CASH')}
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('CASH');
+                  setAmountReceived(totalAmount.toFixed(2));
+                }}
                 className={`btn ${paymentMethod === 'CASH' ? 'btn-primary' : ''}`}
-                style={{ flex: 1, border: paymentMethod !== 'CASH' ? '1px solid var(--border-color)' : 'none' }}
+                style={{ flex: 1, padding: '0.65rem', border: paymentMethod !== 'CASH' ? '1px solid var(--border-color)' : 'none', fontWeight: 600 }}
               >
-                {t('cash')}
+                💵 {t('cash')}
               </button>
               <button 
+                type="button"
                 onClick={() => setPaymentMethod('TRANSFER')}
                 className={`btn ${paymentMethod === 'TRANSFER' ? 'btn-primary' : ''}`}
-                style={{ flex: 1, border: paymentMethod !== 'TRANSFER' ? '1px solid var(--border-color)' : 'none' }}
+                style={{ flex: 1, padding: '0.65rem', border: paymentMethod !== 'TRANSFER' ? '1px solid var(--border-color)' : 'none', fontWeight: 600 }}
               >
-                {t('transfer')}
+                📱 {t('transfer')}
               </button>
             </div>
 
-            {paymentMethod === 'CASH' && (
-              <div className="mb-6">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>{t('amount_received')}</label>
-                <input 
-                  type="number" 
-                  value={amountReceived}
-                  onChange={e => setAmountReceived(e.target.value)}
-                  placeholder="0.00"
-                  style={{ width: '100%', fontSize: '1.25rem', padding: '0.8rem', borderRadius: 'var(--radius-md)' }}
-                  autoFocus
-                />
-                {amountReceived && parseFloat(amountReceived) >= totalAmount && (
-                  <p style={{ marginTop: '0.5rem', color: 'var(--success-color)', fontWeight: 600 }}>
-                    {t('change')}: ฿{changeAmount.toFixed(2)}
-                  </p>
-                )}
+            <form onSubmit={(e) => { e.preventDefault(); handleCheckout(); }}>
+              {paymentMethod === 'CASH' ? (
+                <div className="mb-5">
+                  <label style={{ display: 'block', marginBottom: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
+                    {t('amount_received')} (฿)
+                  </label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    value={amountReceived}
+                    onChange={e => setAmountReceived(e.target.value)}
+                    placeholder="0.00"
+                    style={{ width: '100%', fontSize: '1.35rem', fontWeight: 700, padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)' }}
+                    autoFocus
+                  />
+
+                  {/* Quick Cash Buttons */}
+                  <div className="flex gap-2 mt-3" style={{ flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAmountReceived(totalAmount.toFixed(2))}
+                      className="btn"
+                      style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', border: '1px solid var(--primary-color)', color: 'var(--primary-color)', background: 'var(--bg-secondary)', fontWeight: 600 }}
+                    >
+                      {t('exact_amount')} (฿{totalAmount.toFixed(0)})
+                    </button>
+                    {[100, 500, 1000].filter(val => val >= totalAmount || val === 1000).map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setAmountReceived(val.toString())}
+                        className="btn"
+                        style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}
+                      >
+                        ฿{val.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+
+                  {amountReceived && parseFloat(amountReceived) >= totalAmount ? (
+                    <div style={{ marginTop: '0.85rem', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--success-color)', fontWeight: 600, fontSize: '0.95rem' }}>{t('change')}</span>
+                      <span style={{ color: 'var(--success-color)', fontWeight: 800, fontSize: '1.2rem' }}>฿{changeAmount.toFixed(2)}</span>
+                    </div>
+                  ) : amountReceived && parseFloat(amountReceived) < totalAmount ? (
+                    <p style={{ marginTop: '0.5rem', color: 'var(--danger-color)', fontSize: '0.85rem' }}>
+                      {t('amount_less_than_total')}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mb-5" style={{ padding: '1rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📲</div>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>{t('transfer_prompt')}</p>
+                  <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)', margin: 0 }}>฿{totalAmount.toFixed(2)}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setPaymentMethod('')} 
+                  disabled={isCheckingOut}
+                  className="btn" 
+                  style={{ flex: 1, border: '1px solid var(--border-color)' }}
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isCheckingOut || (paymentMethod === 'CASH' && (!amountReceived || parseFloat(amountReceived) < totalAmount))}
+                  className="btn btn-success" 
+                  style={{ flex: 2, padding: '0.75rem', fontSize: '1.05rem', fontWeight: 700 }}
+                >
+                  {isCheckingOut ? t('processing_payment') : t('confirm_payment')}
+                </button>
               </div>
-            )}
-
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setPaymentMethod('')} 
-                className="btn" 
-                style={{ flex: 1, border: '1px solid var(--border-color)' }}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                onClick={handleCheckout} 
-                disabled={paymentMethod === 'CASH' && (!amountReceived || parseFloat(amountReceived) < totalAmount)}
-                className="btn btn-success" 
-                style={{ flex: 2 }}
-              >
-                {t('confirm_payment')}
-              </button>
-            </div>
+            </form>
           </motion.div>
         </div>
       )}

@@ -27,8 +27,12 @@ export async function POST(request: Request) {
     };
 
     if (!items || items.length === 0) {
-      return NextResponse.json({ error: 'No items in sale' }, { status: 400 });
+      return NextResponse.json({ error: 'ไม่มีรายการสินค้าในคำสั่งซื้อ (No items in sale)' }, { status: 400 });
     }
+
+    const calculatedTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const finalTotal = typeof totalAmount === 'number' && Number.isFinite(totalAmount) ? totalAmount : calculatedTotal;
+    const finalMethod = paymentMethod === 'TRANSFER' ? 'TRANSFER' : 'CASH';
 
     // Use a transaction to ensure all operations succeed or fail together
     const sale = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -58,15 +62,15 @@ export async function POST(request: Request) {
         });
 
         if (updateResult.count === 0) {
-          throw new InsufficientStockError(`สต็อกสินค้าไม่พอ: ${productName}`);
+          throw new InsufficientStockError(`สต็อกสินค้าไม่พอ: ${productName} (คงเหลือในระบบ: ${product?.stock ?? 0})`);
         }
       }
 
       // 2. Create the sale with costAtSale from DB
       const newSale = await tx.sale.create({
         data: {
-          totalAmount,
-          paymentMethod,
+          totalAmount: finalTotal,
+          paymentMethod: finalMethod,
           items: {
             create: items.map((item) => {
               const product = productMap.get(item.id);
@@ -88,11 +92,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(sale, { status: 201 });
-  } catch (error) {
-    if (error instanceof InsufficientStockError || (error as Error)?.name === 'InsufficientStockError') {
-      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
+  } catch (error: any) {
+    if (error instanceof InsufficientStockError || error?.name === 'InsufficientStockError') {
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error('Sale transaction failed:', error);
-    return NextResponse.json({ error: 'Failed to complete sale' }, { status: 500 });
+    return NextResponse.json({ error: 'บันทึกการขายไม่สำเร็จ: ' + (error?.message || 'Database error') }, { status: 500 });
   }
 }
