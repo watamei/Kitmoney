@@ -70,9 +70,9 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(restock);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Restock transaction failed:', error);
-    return NextResponse.json({ error: 'Failed to process restock' }, { status: 500 });
+    return NextResponse.json({ error: 'รับเข้าสต็อกไม่สำเร็จ: ' + (error?.message || 'Database error') }, { status: 500 });
   }
 }
 
