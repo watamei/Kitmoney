@@ -50,13 +50,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="sidebar-header">
           <div className="logo-container">
-            <div className="logo-icon" style={{ overflow: 'hidden', padding: 0, border: '2px solid rgba(255,255,255,0.5)', background: 'transparent' }}>
-              <img src="/logo.gif" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-            <div>
-              <h2>{t('kitmoney')}</h2>
-              <p>{t('premium_pos')}</p>
-            </div>
+            <img src="/logo.gif" alt="Logo" className="logo-icon" />
+          </div>
+          <div>
+            <h2>{t('kitmoney')}</h2>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('premium_pos')}</p>
           </div>
         </div>
 
