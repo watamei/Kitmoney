@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Search, Plus, Minus, Trash2, ShoppingCart, X, Star, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Camera, Search, Plus, Minus, Trash2, ShoppingCart, X, Star, ChevronLeft, ChevronRight, Sparkles, Barcode } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { convertThaiKeyboardToLatin } from '@/lib/thai-keyboard';
 
 type Product = {
   id: number;
@@ -27,6 +28,7 @@ export default function POSPage() {
   const { t, language } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [barcodeInput, setBarcodeInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,6 +47,7 @@ export default function POSPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const productsRef = useRef<Product[]>([]);
   const lastScanRef = useRef<{ barcode: string; time: number }>({ barcode: '', time: 0 });
@@ -93,8 +96,8 @@ export default function POSPage() {
 
   useEffect(() => {
     fetchProducts();
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
     }
   }, [fetchProducts]);
 
@@ -112,12 +115,13 @@ export default function POSPage() {
         scanner.clear();
         setIsCameraScannerOpen(false);
         
-        const product = productsRef.current.find(p => p.barcode === decodedText);
+        const cleanDecoded = convertThaiKeyboardToLatin(decodedText);
+        const product = productsRef.current.find(p => p.barcode === cleanDecoded || p.barcode === decodedText);
         if (product) {
           addToCartRef.current(product);
-          setSearchQuery('');
+          setBarcodeInput('');
         } else {
-          alert(`${t('product_not_found')}: ${decodedText}`);
+          alert(`${t('product_not_found')}: ${cleanDecoded}`);
         }
       }, () => {});
 
@@ -171,30 +175,51 @@ export default function POSPage() {
     return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredProducts, currentPage]);
 
-  // Handle Smart Search & Barcode Submit (Scanner gun or Enter)
-  const handleSmartSearchSubmit = (e: React.FormEvent) => {
+  // Handle Barcode Scan Submit (Scanner gun or Enter in barcode box)
+  const handleBarcodeScanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
+    const raw = barcodeInput.trim();
+    if (!raw) return;
+    const cleanBarcode = convertThaiKeyboardToLatin(raw);
 
-    // 1. Exact barcode match
-    const exactBarcodeMatch = productsRef.current.find(p => p.barcode === query);
-    if (exactBarcodeMatch) {
-      addToCart(exactBarcodeMatch);
-      setSearchQuery('');
-      return;
+    const product = productsRef.current.find(p => p.barcode === cleanBarcode || p.barcode === raw);
+    if (product) {
+      addToCart(product);
+      setBarcodeInput('');
+    } else {
+      alert(`${t('product_not_found')}: ${cleanBarcode}`);
+      setBarcodeInput('');
     }
+    setTimeout(() => barcodeInputRef.current?.focus(), 50);
+  };
 
-    // 2. Exactly one search result
+  // Handle Search Input Submit (Press Enter in search box)
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (filteredProducts.length === 1) {
       addToCart(filteredProducts[0]);
       setSearchQuery('');
-      return;
     }
+  };
 
-    // 3. Not found
-    if (filteredProducts.length === 0) {
-      alert(t('product_not_found'));
+  // Toggle Pin / Favorite (Star best seller)
+  const handleTogglePin = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    const newPinned = !product.isPinned;
+    // Optimistic update
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, isPinned: newPinned } : p));
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: newPinned })
+      });
+      if (!res.ok) {
+        fetchProducts();
+      }
+    } catch (err) {
+      console.error('Failed to toggle pin', err);
+      fetchProducts();
     }
   };
 
@@ -360,63 +385,128 @@ export default function POSPage() {
       style={{ gridTemplateColumns: isMobile ? '1fr' : '2fr 1.1fr', minHeight: isMobile ? 'auto' : 'calc(100vh - 4.5rem)' }}
     >
       <div className="flex" style={{ flexDirection: 'column', gap: '1rem' }}>
-        {/* Unified Smart Search & Scanner Bar */}
-        <motion.div className="card" style={{ padding: '0.75rem 1rem' }} whileHover={{ boxShadow: 'var(--shadow-md)' }}>
-          <form onSubmit={handleSmartSearchSubmit} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        {/* Dedicated Scanner + Search Command Bar */}
+        <div 
+          className="card" 
+          style={{ 
+            padding: '0.75rem 1rem', 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row', 
+            gap: '0.75rem', 
+            alignItems: 'stretch' 
+          }}
+        >
+          {/* Barcode Scanner Gun Box (Auto-converts Thai keyboard to digits) */}
+          <form 
+            onSubmit={handleBarcodeScanSubmit} 
+            style={{ 
+              flex: isMobile ? 'none' : '1.25', 
+              display: 'flex', 
+              gap: '0.5rem', 
+              alignItems: 'center' 
+            }}
+          >
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--text-secondary)' }} />
+              <Barcode size={20} style={{ position: 'absolute', left: '0.9rem', color: 'var(--primary-color)' }} />
               <input 
-                ref={searchInputRef}
+                ref={barcodeInputRef}
                 type="text" 
-                placeholder={t('search_or_scan_placeholder')} 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('scan_barcode_box')}
+                value={barcodeInput}
+                onChange={e => {
+                  const converted = convertThaiKeyboardToLatin(e.target.value);
+                  setBarcodeInput(converted);
+                }}
                 style={{
                   width: '100%',
-                  fontSize: isMobile ? '0.95rem' : '1rem',
-                  padding: '0.75rem 2.25rem 0.75rem 2.75rem',
+                  fontSize: isMobile ? '0.9rem' : '0.95rem',
+                  padding: '0.7rem 2.2rem 0.7rem 2.75rem',
                   borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--border-color)',
+                  border: '1.5px solid var(--primary-color)',
                   background: 'var(--bg-color)',
+                  fontWeight: 500,
+                  letterSpacing: '0.3px',
                 }}
                 autoFocus
               />
-              {searchQuery && (
+              {barcodeInput && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  style={{ position: 'absolute', right: '0.85rem', background: 'transparent', color: 'var(--text-secondary)', padding: '0.2rem' }}
+                  onClick={() => setBarcodeInput('')}
+                  style={{ position: 'absolute', right: '0.75rem', background: 'transparent', color: 'var(--text-secondary)', padding: '0.2rem' }}
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               )}
             </div>
-            <button type="submit" style={{ display: 'none' }}>Submit</button>
+            <button type="submit" style={{ display: 'none' }}>Scan</button>
 
+            {/* Camera scanner toggle */}
             <motion.button 
               type="button"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="btn" 
+              title={t('scanner')}
               style={{
                 background: isCameraScannerOpen ? 'var(--primary-color)' : 'var(--bg-secondary)',
                 color: isCameraScannerOpen ? '#fff' : 'var(--text-primary)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-full)',
-                padding: '0.75rem 1.15rem',
-                whiteSpace: 'nowrap',
+                padding: '0.7rem 0.9rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.9rem',
+                gap: '0.4rem',
+                fontSize: '0.85rem',
+                flexShrink: 0,
               }}
               onClick={() => setIsCameraScannerOpen(!isCameraScannerOpen)}
             >
-              <Camera size={18} />
-              <span>{t('scanner')}</span>
+              <Camera size={17} />
+              {!isMobile && <span>{t('scanner')}</span>}
             </motion.button>
           </form>
-        </motion.div>
+
+          {/* Search by Name / Keyword Box */}
+          <form 
+            onSubmit={handleSearchSubmit} 
+            style={{ 
+              flex: isMobile ? 'none' : '1', 
+              display: 'flex', 
+              gap: '0.5rem', 
+              alignItems: 'center' 
+            }}
+          >
+            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Search size={18} style={{ position: 'absolute', left: '0.9rem', color: 'var(--text-secondary)' }} />
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                placeholder={t('search_product_box')}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  fontSize: isMobile ? '0.9rem' : '0.95rem',
+                  padding: '0.7rem 2.2rem 0.7rem 2.5rem',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-color)',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{ position: 'absolute', right: '0.75rem', background: 'transparent', color: 'var(--text-secondary)', padding: '0.2rem' }}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <button type="submit" style={{ display: 'none' }}>Search</button>
+          </form>
+        </div>
 
         {/* Camera Scanner View */}
         <AnimatePresence>
@@ -576,9 +666,29 @@ export default function POSPage() {
                         }}>
                           {product.name}
                         </h4>
-                        {product.isPinned && (
-                          <Star size={14} fill="#f5a623" color="#f5a623" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => handleTogglePin(e, product)}
+                          title={product.isPinned ? t('unpin_action') : t('pin_action')}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            padding: '3px',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '6px',
+                            color: product.isPinned ? '#f59e0b' : 'var(--text-secondary)',
+                            opacity: product.isPinned ? 1 : 0.35,
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                          onMouseLeave={(e) => { if (!product.isPinned) e.currentTarget.style.opacity = '0.35'; }}
+                        >
+                          <Star size={17} fill={product.isPinned ? '#f59e0b' : 'transparent'} />
+                        </button>
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.75rem' }}>
