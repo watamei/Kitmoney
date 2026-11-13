@@ -1,29 +1,63 @@
 @echo off
 chcp 65001 > nul
-title KidYa - Setup for New Computer
+title KidYa - ติดตั้งระบบบนเครื่องใหม่
 
 echo ========================================================
-echo       ติดตั้งระบบ KidYa สำหรับคอมพิวเตอร์เครื่องใหม่
+echo      กำลังติดตั้งระบบ KidYa POS สำหรับคอมพิวเตอร์เครื่องนี้
 echo ========================================================
 echo.
 
 cd /d "%~dp0"
 
-echo [1/3] กำลังติดตั้งไลบรารีระบบ (npm install)...
+:: 1. ตรวจสอบ Node.js
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [คำเตือน] เครื่องนี้ยังไม่ได้ติดตั้ง Node.js
+    echo กำลังเปิดหน้าดาวน์โหลด Node.js ให้ในเบราว์เซอร์...
+    start https://nodejs.org/en/download
+    echo.
+    echo กรุณาดาวน์โหลดและติดตั้ง Node.js (แนะนำแบบ LTS) ให้เสร็จ
+    echo แล้วค่อยดับเบิ้ลคลิกไฟล์นี้ใหม่อีกครั้งครับ!
+    echo.
+    pause
+    exit /b 1
+)
+
+echo [OK] ตรวจพบ Node.js ในเครื่องเรียบร้อยแล้ว
+echo.
+
+:: 2. ตรวจสอบและสร้าง .env อัตโนมัติ (เผื่อก๊อปปี้มาแล้วไฟล์ .env ไม่ติดมาด้วย)
+if not exist ".env" (
+    echo [กำลังสร้างไฟล์ .env เชื่อมต่อ Neon Cloud อัตโนมัติ...]
+    (
+        echo DATABASE_URL="postgresql://neondb_owner:npg_HjufMAV4vP8Y@ep-summer-sunset-azalpwo7-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+        echo DIRECT_URL="postgresql://neondb_owner:npg_HjufMAV4vP8Y@ep-summer-sunset-azalpwo7.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+        echo SESSION_SECRET="kitmoney_super_secure_session_secret_key_32chars_min"
+    ) > .env
+    echo [OK] เชื่อมต่อ Cloud Database Neon สำเร็จ
+)
+
+echo [1/3] กำลังติดตั้งไลบรารีของระบบ (npm install)...
 call npm install
 
 echo.
-echo [2/3] กำลังเตรียมเชื่อมต่อฐานข้อมูล Neon Cloud (prisma generate)...
+echo [2/3] กำลังเชื่อมต่อโครงสร้างข้อมูล Cloud Neon (prisma generate)...
 call npx prisma generate
 
 echo.
-echo [3/3] กำลังบิวด์ระบบความเร็วสูง (npm run build)...
+echo [3/3] กำลังบิวด์ระบบแบบ Production เพื่อความเร็วสูงสุด (npm run build)...
 call npm run build
+
+:: 4. สร้าง Shortcut ไว้ที่หน้า Desktop อัตโนมัติ
+powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), 'KidYa POS.lnk')); $s.TargetPath = [System.IO.Path]::Combine('%~dp0', 'เปิดระบบ_KidYa.bat'); $s.WorkingDirectory = '%~dp0'; $s.Description = 'KidYa - Luxury Pharmacy POS'; $s.Save()"
 
 echo.
 echo ========================================================
-echo   ติดตั้งเรียบร้อยแล้ว!
-echo   สามารถดับเบิ้ลคลิกไฟล์ "เปิดระบบ_KidYa.bat" เพื่อเริ่มใช้งานได้เลย
+echo   [สำเร็จ!] ติดตั้งระบบ KidYa บนเครื่องนี้เรียบร้อยแล้ว
+echo   
+echo   - ระบบได้สร้างไอคอน "KidYa POS" ไว้ที่หน้า Desktop ให้แล้ว
+echo   - สามารถดับเบิ้ลคลิกไอคอนที่หน้า Desktop หรือไฟล์
+echo     "เปิดระบบ_KidYa.bat" เพื่อเริ่มขายของได้ทันที!
 echo ========================================================
 echo.
 
