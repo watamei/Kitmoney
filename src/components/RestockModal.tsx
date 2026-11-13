@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Plus, Trash2, PackagePlus, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -105,7 +107,7 @@ export default function RestockModal({ isOpen, onClose, onSuccess, products }: R
       onClose();
     } catch (error) {
       console.error(error);
-      alert('Failed to restock');
+      alert(t('failed_to_restock'));
     } finally {
       setIsSubmitting(false);
     }
@@ -114,12 +116,12 @@ export default function RestockModal({ isOpen, onClose, onSuccess, products }: R
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
+    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1000 }}>
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="modal-content"
+        className="modal"
         onClick={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', borderRadius: 0 }}
       >

@@ -1,13 +1,25 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+interface CreateProductRequestBody {
+  name: string;
+  barcode?: string | null;
+  category?: string;
+  cost?: string | number;
+  price?: string | number;
+  stock?: string | number;
+  minStock?: string | number;
+  isPinned?: boolean;
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     
-    let whereClause = {};
+    let whereClause: Prisma.ProductWhereInput = {};
     if (search) {
       whereClause = {
         OR: [
@@ -23,26 +35,30 @@ export async function GET(request: Request) {
       include: { category: true }
     });
 
-    const formattedProducts = products.map((p: Record<string, unknown> & { category?: { name: string } | null }) => ({
+    type ProductWithCategory = Prisma.ProductGetPayload<{ include: { category: true } }>;
+
+    const formattedProducts = products.map((p: ProductWithCategory) => ({
       ...p,
       category: p.category?.name || null
     }));
 
     return NextResponse.json(formattedProducts);
   } catch (error) {
+    console.error('Failed to fetch products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    let categoryConnect: Record<string, unknown> | undefined = undefined;
+    const data: CreateProductRequestBody = await request.json();
+    let categoryConnect: Prisma.CategoryCreateNestedOneWithoutProductsInput | undefined = undefined;
     if (data.category && data.category.trim() !== '') {
+      const categoryName = data.category.trim();
       categoryConnect = {
         connectOrCreate: {
-          where: { name: data.category.trim() },
-          create: { name: data.category.trim() }
+          where: { name: categoryName },
+          create: { name: categoryName }
         }
       };
     }
@@ -52,15 +68,16 @@ export async function POST(request: Request) {
         name: data.name,
         barcode: data.barcode || null,
         category: categoryConnect,
-        cost: parseFloat(data.cost) || 0,
-        price: parseFloat(data.price) || 0,
-        stock: parseInt(data.stock) || 0,
-        minStock: parseInt(data.minStock) || 10,
+        cost: typeof data.cost === 'number' ? data.cost : (parseFloat(data.cost || '0') || 0),
+        price: typeof data.price === 'number' ? data.price : (parseFloat(data.price || '0') || 0),
+        stock: typeof data.stock === 'number' ? Math.floor(data.stock) : (parseInt(data.stock || '0') || 0),
+        minStock: typeof data.minStock === 'number' ? Math.floor(data.minStock) : (parseInt(data.minStock || '10') || 10),
         isPinned: Boolean(data.isPinned),
       }
     });
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
+    console.error('Failed to create product:', error);
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
   }
 }

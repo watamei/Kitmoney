@@ -42,7 +42,7 @@ export default function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => vo
     // Small delay for feel
     await new Promise(r => setTimeout(r, 600));
 
-    const success = login(username, password);
+    const success = await login(username, password);
     if (success) {
       setGreetingPhrase(phrases[Math.floor(Math.random() * phrases.length)]);
       setShowSuccess(true);

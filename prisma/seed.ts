@@ -6,10 +6,6 @@ function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function randomDate(start: Date, end: Date) {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-}
-
 async function main() {
   console.log('Starting database reset...');
 
@@ -70,7 +66,7 @@ async function main() {
   startDate.setDate(startDate.getDate() - 180);
 
   // --- Generate Expenses ---
-  let expenseDate = new Date(startDate);
+  const expenseDate = new Date(startDate);
   while (expenseDate <= today) {
     // Rent
     await prisma.expense.create({

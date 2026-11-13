@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, PackageOpen, PackagePlus } from 'lucide-react';
@@ -58,12 +60,12 @@ export default function RestockHistoryModal({ isOpen, onClose }: { isOpen: boole
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
+    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1000 }}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="modal-content"
+        className="modal"
         onClick={e => e.stopPropagation()}
         style={{ width: '90%', maxWidth: selectedRestock ? '1000px' : '800px', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', transition: 'max-width 0.3s ease' }}
       >

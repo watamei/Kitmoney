@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Search, Plus, Minus, Trash2, ShoppingCart, X, Star } from 'lucide-react';
@@ -40,42 +40,14 @@ export default function POSPage() {
   }, []);
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const productsRef = useRef<Product[]>([]);
+  const lastScanRef = useRef<{ barcode: string; time: number }>({ barcode: '', time: 0 });
 
   useEffect(() => {
-    fetchProducts();
-    if (barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
-    }
-  }, []);
+    productsRef.current = products;
+  }, [products]);
 
-  async function fetchProducts() {
-    try {
-      const res = await fetch('/api/products');
-      const data = await res.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to fetch products', error);
-    }
-  }
-
-  const handleBarcodeScannerInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBarcodeInput(e.target.value);
-  };
-
-  const handleBarcodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!barcodeInput.trim()) return;
-    
-    const product = products.find(p => p.barcode === barcodeInput.trim());
-    if (product) {
-      addToCart(product);
-      setBarcodeInput('');
-    } else {
-      alert(t('product_not_found'));
-    }
-  };
-
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     if (product.stock <= 0) {
       alert(t('out_of_stock'));
       return;
@@ -94,6 +66,48 @@ export default function POSPage() {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
+  }, [t]);
+
+  const addToCartRef = useRef(addToCart);
+  useEffect(() => {
+    addToCartRef.current = addToCart;
+  }, [addToCart]);
+
+  useEffect(() => {
+    fetchProducts();
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
+    }
+  }, []);
+
+  async function fetchProducts() {
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch products', error);
+    }
+  }
+
+  const handleBarcodeScannerInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBarcodeInput(e.target.value);
+  };
+
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const barcode = barcodeInput.trim();
+    if (!barcode) return;
+    
+    const product = productsRef.current.find(p => p.barcode === barcode);
+    if (product) {
+      addToCart(product);
+      setBarcodeInput('');
+    } else {
+      alert(t('product_not_found'));
+    }
   };
 
   const removeFromCart = (id: number) => {
@@ -119,7 +133,7 @@ export default function POSPage() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     if (paymentMethod === 'CASH' && (!amountReceived || parseFloat(amountReceived) < totalAmount)) {
-      alert('Amount received is less than total amount!');
+      alert(t('amount_less_than_total'));
       return;
     }
 
@@ -138,10 +152,13 @@ export default function POSPage() {
         setShowPrintModal(true);
         fetchProducts();
       } else {
-        alert('Checkout failed!');
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error || t('checkout_failed'));
+        fetchProducts();
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      alert(t('checkout_error'));
     }
   };
 
@@ -158,16 +175,22 @@ export default function POSPage() {
     if (isCameraScannerOpen) {
       const scanner = new Html5QrcodeScanner("reader", { qrbox: { width: 250, height: 250 }, fps: 5 }, false);
       scanner.render((decodedText) => {
+        const now = Date.now();
+        if (lastScanRef.current.barcode === decodedText && now - lastScanRef.current.time < 1000) {
+          return; // debounce ~1 second per same barcode
+        }
+        lastScanRef.current = { barcode: decodedText, time: now };
+
         setBarcodeInput(decodedText);
         scanner.clear();
         setIsCameraScannerOpen(false);
         
-        const product = products.find(p => p.barcode === decodedText);
+        const product = productsRef.current.find(p => p.barcode === decodedText);
         if (product) {
-          addToCart(product);
+          addToCartRef.current(product);
           setBarcodeInput('');
         } else {
-          alert('Product not found: ' + decodedText);
+          alert(`${t('product_not_found')}: ${decodedText}`);
         }
       }, () => {});
 
@@ -175,7 +198,7 @@ export default function POSPage() {
         scanner.clear().catch(e => console.error(e));
       };
     }
-  }, [isCameraScannerOpen, products]);
+  }, [isCameraScannerOpen, t]);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -272,28 +295,42 @@ export default function POSPage() {
       style={{ gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', minHeight: isMobile ? 'auto' : 'calc(100vh - 4rem)' }}
     >
       <div className="flex" style={{ flexDirection: 'column', gap: '1.5rem' }}>
-        <motion.div className="card flex items-center justify-between gap-4" whileHover={{ boxShadow: 'var(--shadow-lg)' }}>
-          <form onSubmit={handleBarcodeSubmit} style={{ flex: 1, display: 'flex', gap: '1rem', position: 'relative' }}>
-            <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+        <motion.div className="card flex gap-4" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: 'center' }} whileHover={{ boxShadow: 'var(--shadow-lg)' }}>
+          {/* Barcode input for scanning/direct barcode lookup */}
+          <form onSubmit={handleBarcodeSubmit} style={{ flex: '1 1 50%', display: 'flex', width: '100%', position: 'relative' }}>
             <input 
               ref={barcodeInputRef}
               type="text" 
-              placeholder="Scan Barcode here..." 
+              placeholder={t('scan_barcode_placeholder')} 
               value={barcodeInput}
               onChange={handleBarcodeScannerInput}
-              style={{ flex: 1, fontSize: isMobile ? '1rem' : '1.1rem', padding: isMobile ? '0.85rem 0.85rem 0.85rem 2.75rem' : '1rem 1rem 1rem 3rem', borderRadius: 'var(--radius-full)' }}
+              style={{ width: '100%', fontSize: isMobile ? '0.95rem' : '1rem', padding: '0.85rem 1rem', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-color)' }}
               autoFocus
             />
             <button type="submit" style={{ display: 'none' }}>Enter</button>
           </form>
+
+          {/* Product name search input bound to searchQuery */}
+          <div style={{ flex: '1 1 50%', position: 'relative', width: '100%' }}>
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              placeholder={t('search_products')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', fontSize: isMobile ? '0.95rem' : '1rem', padding: '0.85rem 1rem 0.85rem 2.75rem', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-color)' }}
+            />
+          </div>
+
+          {/* Camera Scanner Toggle Button */}
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="btn" 
-            style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-full)', padding: '1rem 1.5rem' }}
+            style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-full)', padding: '0.85rem 1.25rem', whiteSpace: 'nowrap', width: isMobile ? '100%' : 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setIsCameraScannerOpen(!isCameraScannerOpen)}
           >
-            <Camera size={20} className="mr-2" /> Scanner
+            <Camera size={18} className="mr-2" /> {t('scanner')}
           </motion.button>
         </motion.div>
 
@@ -446,7 +483,7 @@ export default function POSPage() {
         `}</style>
         <div className="receipt-container">
           <h2 style={{ textAlign: 'center', margin: '0 0 10px 0' }}>KidYa POS</h2>
-          <p style={{ textAlign: 'center', margin: '0 0 5px 0', fontSize: '12px' }}>Receipt</p>
+          <p style={{ textAlign: 'center', margin: '0 0 5px 0', fontSize: '12px' }}>{t('receipt')}</p>
           <p style={{ textAlign: 'center', margin: '0 0 10px 0', fontSize: '12px' }}>
             {new Date().toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })} {new Date().toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
           </p>
@@ -459,29 +496,29 @@ export default function POSPage() {
           ))}
           <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-            <span>Total:</span>
+            <span>{t('total')}:</span>
             <span>฿{totalAmount.toFixed(2)}</span>
           </div>
           {paymentMethod === 'CASH' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                <span>Cash:</span>
+                <span>{t('cash')}:</span>
                 <span>฿{parseFloat(amountReceived || '0').toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                <span>Change:</span>
+                <span>{t('change')}:</span>
                 <span>฿{changeAmount.toFixed(2)}</span>
               </div>
             </>
           )}
-          <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '12px' }}>Thank you!</p>
+          <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '12px' }}>{t('thank_you')}</p>
         </div>
       </div>
 
       {/* Print Choice Modal */}
       {showPrintModal && (
         <div className="modal-backdrop">
-          <div className="modal">
+          <div className="modal" style={{ textAlign: 'center' }}>
             <h2 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>✅ {t('sales_completed')}</h2>
             <p style={{ marginBottom: '2rem', fontSize: '1.1rem' }}>{t('receipt_prompt')}</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>

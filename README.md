@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kitmoney - Luxury Pharmacy POS
 
-## Getting Started
+Modern & Minimalist POS System for Pharmacy built with Next.js (App Router), Prisma ORM, and PostgreSQL.
 
-First, run the development server:
+---
 
+## 🚀 Deployment Guide (Vercel + Neon / Supabase)
+
+### 1. เตรียมฐานข้อมูล PostgreSQL (Neon หรือ Supabase)
+1. สร้างโปรเจกต์ใหม่บน [Neon](https://neon.tech) หรือ [Supabase](https://supabase.com)
+2. คัดลอก Connection String มา 2 รูปแบบ:
+   - **`DATABASE_URL`**: Pooled connection string (สำหรับรันแอปบน Serverless)
+   - **`DIRECT_URL`**: Direct connection string (สำหรับรัน Prisma Migrate)
+
+### 2. ตั้งค่า Environment Variables บน Vercel
+กำหนดค่าตัวแปรใน Vercel Project Settings > Environment Variables:
+- `DATABASE_URL`: `postgresql://...` (Pooled connection)
+- `DIRECT_URL`: `postgresql://...` (Direct connection)
+- `SESSION_SECRET`: สตริงสุ่มความยาวไม่ต่ำกว่า 32 ตัวอักษร สำหรับเข้ารหัส cookie session
+
+### 3. รัน Migration เพื่อสร้างโครงสร้างฐานข้อมูลบน PostgreSQL
+ก่อน deploy หรือผ่านเครื่อง Local ที่ชี้ `DATABASE_URL` ไปยัง Postgres:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx prisma migrate deploy
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. ย้ายข้อมูลจาก SQLite เดิม (dev.db) ไป PostgreSQL (ถ้ามี)
+รันสคริปต์ย้ายข้อมูล:
+```bash
+npx tsx scripts/migrate-sqlite-to-pg.ts
+```
+> **หมายเหตุ:** สคริปต์จะอ่านข้อมูลจาก `prisma/dev.db` และนำเข้า PostgreSQL โดยคงความสัมพันธ์ `Category -> Product -> Sale -> SaleItem -> Restock ฯลฯ` พร้อมรีเซ็ต Serial Sequences ให้อัตโนมัติ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. สร้างบัญชีผู้ใช้แรกสำหรับเข้าสู่ระบบ
+```bash
+npx tsx prisma/create-user.ts <username> <password>
+```
+*ตัวอย่าง:*
+```bash
+npx tsx prisma/create-user.ts admin MyStrongPassword123
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 💻 Local Development
 
-To learn more about Next.js, take a look at the following resources:
+1. ติดตั้ง Dependencies:
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. สร้างไฟล์ `.env` ตาม `.env.example`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Generate Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. รัน Development Server:
+   ```bash
+   npm run dev
+   ```
+   เข้าใช้งานผ่าน [http://localhost:3000](http://localhost:3000)

@@ -63,7 +63,9 @@ export default function InventoryPage() {
     try {
       const res = await fetch('/api/categories');
       const data = await res.json();
-      setCategories(data);
+      if (Array.isArray(data)) {
+        setCategories(data.map((c: { name?: string } | string) => typeof c === 'string' ? c : (c.name || '')));
+      }
     } catch (error) {
       console.error('Failed to fetch categories', error);
     }
@@ -94,28 +96,27 @@ export default function InventoryPage() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
         
-        // Ensure data is imported sequentially or parallel
-        for (const row of data as Record<string, string | number>[]) {
-          await fetch('/api/products', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              barcode: row.barcode?.toString() || '',
-              name: row.name || 'Unnamed',
-              category: row.category || '',
-              cost: row.cost || 0,
-              price: row.price || 0,
-              stock: row.stock || 0,
-              minStock: row.minStock || 10,
-              isPinned: row.isPinned || false,
-            })
-          });
+        const res = await fetch('/api/products/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: data })
+        });
+        const result = await res.json();
+        
+        if (res.ok) {
+          if (result.errorCount > 0) {
+            const errorDetails = result.errors.slice(0, 3).map((err: { row: number; error: string }) => `แถว ${err.row}: ${err.error}`).join('\n');
+            alert(`นำเข้าสำเร็จ ${result.successCount} รายการ, ผิดพลาด ${result.errorCount} รายการ\n${errorDetails}`);
+          } else {
+            alert(t('import_successful'));
+          }
+          fetchProducts();
+        } else {
+          alert(result.error || t('import_failed'));
         }
-        alert('Import successful!');
-        fetchProducts();
       } catch (error) {
         console.error('Error importing Excel', error);
-        alert('Failed to import Excel file.');
+        alert(t('import_failed'));
       }
     };
     reader.readAsBinaryString(file);
@@ -173,24 +174,28 @@ export default function InventoryPage() {
         await fetchCategories();
         handleCloseModal();
       } else {
-        const errorText = await res.text();
-        alert(`Failed to save product: ${errorText}`);
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error || t('save_product_failed'));
       }
     } catch (error) {
       console.error('Failed to save product', error);
-      alert('Failed to save product: ' + (error as Error).message);
+      alert(t('save_product_failed'));
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm(t('confirm_delete_product'))) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         await fetchProducts();
+      } else {
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error || t('delete_product_failed'));
       }
     } catch (error) {
       console.error('Failed to delete product', error);
+      alert(t('delete_product_failed'));
     }
   };
 
@@ -581,7 +586,7 @@ export default function InventoryPage() {
                     onChange={e => setFormData({...formData, isPinned: e.target.checked})}
                     style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
                   />
-                  <span className="font-medium">Pin this product (Show at top of POS)</span>
+                  <span className="font-medium">{t('pin_product')}</span>
                 </label>
               </div>
               <div className="flex justify-between items-center mt-4">
@@ -644,7 +649,7 @@ export default function InventoryPage() {
                       link.click();
                     } catch (err) {
                       console.error('Failed to save PNG', err);
-                      alert('Failed to save PNG');
+                      alert(t('failed_to_save_png'));
                     }
                   }} 
                   className="btn"

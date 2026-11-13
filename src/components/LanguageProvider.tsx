@@ -129,6 +129,28 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Global
     'loading': 'Loading...',
+    'scan_barcode_placeholder': 'Scan Barcode here...',
+    'scanner': 'Scanner',
+    'pin_product': 'Pin this product (Show at top of POS)',
+    'import_successful': 'Import successful!',
+    'import_failed': 'Failed to import Excel file.',
+    'amount_less_than_total': 'Amount received is less than total amount!',
+    'checkout_failed': 'Checkout failed!',
+    'checkout_error': 'Checkout error. Please try again.',
+    'confirm_delete_product': 'Are you sure you want to delete this product?',
+    'delete_product_failed': 'Failed to delete product',
+    'save_product_failed': 'Failed to save product',
+    'confirm_delete_category': 'Are you sure you want to delete this category?',
+    'delete_category_failed': 'Failed to delete category',
+    'update_category_failed': 'Failed to update category',
+    'add_category_failed': 'Failed to add category',
+    'failed_to_save_png': 'Failed to save PNG',
+    'failed_to_restock': 'Failed to restock',
+    'receipt': 'Receipt',
+    'thank_you': 'Thank you!',
+    'save': 'Save',
+    'barcode_preview': 'Barcode Preview',
+    'price_label': 'Price:',
   },
   th: {
     // Sidebar
@@ -249,6 +271,28 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Global
     'loading': 'กำลังโหลด...',
+    'scan_barcode_placeholder': 'สแกน หรือ พิมพ์บาร์โค้ดที่นี่...',
+    'scanner': 'สแกนเนอร์',
+    'pin_product': 'ปักหมุดสินค้านี้ (แสดงด้านบนสุดของ POS)',
+    'import_successful': 'นำเข้าข้อมูลสำเร็จ!',
+    'import_failed': 'เกิดข้อผิดพลาดในการนำเข้าไฟล์ Excel',
+    'amount_less_than_total': 'จำนวนเงินที่รับมาน้อยกว่ายอดชำระ!',
+    'checkout_failed': 'การชำระเงินไม่สำเร็จ!',
+    'checkout_error': 'เกิดข้อผิดพลาดในการชำระเงิน กรุณาลองใหม่อีกครั้ง',
+    'confirm_delete_product': 'คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?',
+    'delete_product_failed': 'ไม่สามารถลบสินค้าได้',
+    'save_product_failed': 'ไม่สามารถบันทึกสินค้าได้',
+    'confirm_delete_category': 'คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้?',
+    'delete_category_failed': 'ไม่สามารถลบหมวดหมู่ได้',
+    'update_category_failed': 'ไม่สามารถแก้ไขหมวดหมู่ได้',
+    'add_category_failed': 'ไม่สามารถเพิ่มหมวดหมู่ได้',
+    'failed_to_save_png': 'บันทึกรูปภาพ PNG ไม่สำเร็จ',
+    'failed_to_restock': 'เกิดข้อผิดพลาดในการรับเข้าสินค้า',
+    'receipt': 'ใบเสร็จรับเงิน',
+    'thank_you': 'ขอบคุณที่ใช้บริการ!',
+    'save': 'บันทึก',
+    'barcode_preview': 'ดูตัวอย่างบาร์โค้ด',
+    'price_label': 'ราคา:',
   }
 };
 

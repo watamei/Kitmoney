@@ -81,9 +81,7 @@ export async function GET(request: Request) {
     for (const sale of sales) {
       totalRevenue += sale.totalAmount;
       for (const item of sale.items) {
-        if (item.product) {
-          totalCost += (item.product.cost * item.quantity);
-        }
+        totalCost += ((item.costAtSale ?? 0) * item.quantity);
       }
     }
 

@@ -280,12 +280,12 @@ export default function SalesHistoryPage() {
       {/* Sale Details Modal */}
       <AnimatePresence>
         {selectedSale && (
-          <div className="modal-overlay" onClick={() => setSelectedSale(null)}>
+          <div className="modal-backdrop" onClick={() => setSelectedSale(null)}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="modal-content"
+              className="modal"
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: '600px', width: '90%' }}
             >
