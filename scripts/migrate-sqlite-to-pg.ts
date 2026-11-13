@@ -44,7 +44,6 @@ async function main() {
           id: c.id,
           name: c.name,
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -81,7 +80,6 @@ async function main() {
           createdAt: new Date(p.createdAt),
           updatedAt: new Date(p.updatedAt),
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -106,7 +104,6 @@ async function main() {
           createdAt: new Date(s.createdAt),
           updatedAt: new Date(s.updatedAt),
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -139,8 +136,7 @@ async function main() {
             costAtSale: Number(item.costAtSale ?? 0),
             subtotal: Number(item.subtotal) || 0,
           })),
-          // @ts-expect-error skipDuplicates is supported on PostgreSQL
-        skipDuplicates: true,
+          skipDuplicates: true,
         });
       }
     }
@@ -165,7 +161,6 @@ async function main() {
           createdAt: new Date(r.createdAt),
           updatedAt: new Date(r.updatedAt),
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -192,7 +187,6 @@ async function main() {
           unitCost: Number(item.unitCost) || 0,
           subtotal: Number(item.subtotal) || 0,
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -219,7 +213,6 @@ async function main() {
           createdAt: new Date(e.createdAt),
           updatedAt: new Date(e.updatedAt),
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
@@ -242,7 +235,6 @@ async function main() {
           passwordHash: u.passwordHash,
           createdAt: new Date(u.createdAt),
         })),
-        // @ts-expect-error skipDuplicates is supported on PostgreSQL
         skipDuplicates: true,
       });
     }
